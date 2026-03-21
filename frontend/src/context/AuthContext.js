@@ -1,124 +1,56 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+// src/context/AuthContext.jsx
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { authApi } from "../api";
 
-const AuthContext = createContext();
+const Ctx = createContext(null);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }) {
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
 
-  // Set axios default header
   useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      loadUser();
-    } else {
-      delete axios.defaults.headers.common['Authorization'];
-      setLoading(false);
-    }
-  }, [token]);
+    const t = localStorage.getItem("ssa_token");
+    if (!t) { setLoading(false); return; }
+    authApi.getMe()
+      .then(r => setUser(r.user))
+      .catch(() => localStorage.removeItem("ssa_token"))
+      .finally(() => setLoading(false));
+  }, []);
 
-  // Load user profile
-  const loadUser = async () => {
-    try {
-      const response = await axios.get('/api/auth/profile');
-      setUser(response.data.user);
-    } catch (error) {
-      console.error('Failed to load user:', error);
-      logout(); // Clear invalid token
-    } finally {
-      setLoading(false);
-    }
-  };
+  const login = useCallback(async (email, password) => {
+    const r = await authApi.login(email, password);
+    localStorage.setItem("ssa_token", r.token);
+    setUser(r.user);
+    return r;
+  }, []);
 
-  // Register user
-  const register = async (email, password) => {
-    try {
-      const response = await axios.post('/api/auth/register', {
-        email,
-        password
-      });
-      
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.msg || 'Registration failed'
-      };
-    }
-  };
+  const register = useCallback(async (name, email, password) => {
+    const r = await authApi.register(name, email, password);
+    localStorage.setItem("ssa_token", r.token);
+    setUser(r.user);
+    return r;
+  }, []);
 
-  // Login user
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post('/api/auth/login', {
-        email,
-        password
-      });
-      
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-      
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.msg || 'Login failed'
-      };
-    }
-  };
-
-  // Logout user
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
+  const logout = useCallback(() => {
+    localStorage.removeItem("ssa_token");
     setUser(null);
-    delete axios.defaults.headers.common['Authorization'];
-  };
+  }, []);
 
-  // Update profile
-  const updateProfile = async (profileData) => {
-    try {
-      const response = await axios.put('/api/auth/profile', profileData);
-      setUser(response.data.user);
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.msg || 'Profile update failed'
-      };
-    }
-  };
-
-  const value = {
-    user,
-    loading,
-    isAuthenticated: !!user,
-    register,
-    login,
-    logout,
-    updateProfile
-  };
+  const updateProfile = useCallback(async (data) => {
+    const r = await authApi.updateProfile(data);
+    setUser(r.user);
+    return r;
+  }, []);
 
   return (
-    <AuthContext.Provider value={value}>
+    <Ctx.Provider value={{ user, loading, login, register, logout, updateProfile }}>
       {children}
-    </AuthContext.Provider>
+    </Ctx.Provider>
   );
+}
+
+export const useAuth = () => {
+  const ctx = useContext(Ctx);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
 };

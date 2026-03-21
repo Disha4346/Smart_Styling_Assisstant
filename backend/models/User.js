@@ -1,63 +1,41 @@
+// models/User.js
 const mongoose = require("mongoose");
+const bcrypt   = require("bcryptjs");
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
+    name:  { type: String, required: [true, "Name is required"], trim: true, maxlength: 50 },
     email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: true,
-      lowercase: true,
-      trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email address"],
+      type: String, required: [true, "Email is required"], unique: true, lowercase: true,
+      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, "Invalid email"],
     },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-      minlength: [8, "Password must be at least 8 characters"],
-    },
-    profile: {
-      body_type: {
-        type: String,
-        enum: ["hourglass", "pear", "apple", "rectangle", "inverted_triangle", ""],
-        default: "",
-      },
-      height: {
-        type: Number, // in cm
-      },
-      weight: {
-        type: Number, // in kg
-      },
-      skin_tone: {
-        type: String,
-        enum: ["fair", "light", "medium", "olive", "tan", "dark", ""],
-        default: "",
-      },
-      style_preference: {
-        type: [String], // ["casual", "formal", "sporty", "bohemian", etc.]
-        default: [],
-      },
-    },
-    savedDesigns: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Design",
-      },
-    ],
-    preferences: {
-      colors: [String],
-      brands: [String],
-      budget: {
-        min: Number,
-        max: Number,
-      },
-    },
+    password: { type: String, required: [true, "Password is required"], minlength: 6, select: false },
+
+    // Body measurements (spec §6)
+    height:         { type: Number, default: null },   // cm
+    weight:         { type: Number, default: null },   // kg
+    chest:          { type: Number, default: null },   // cm
+    waist:          { type: Number, default: null },   // cm
+    hip:            { type: Number, default: null },   // cm
+    shoulderWidth:  { type: Number, default: null },   // cm
+    bodyShape:      { type: String, default: "", trim: true },   // hourglass, pear, etc.
+    skinTone:       { type: String, default: "", trim: true },
+
+    // Style preferences
+    gender:         { type: String, default: "", trim: true },
+    stylePreference:{ type: [String], default: [] },   // ["minimal","classic"]
   },
-  {
-    timestamps: true, // Adds createdAt and updatedAt
-  }
+  { timestamps: true }
 );
 
-// Index for faster queries
-userSchema.index({ email: 1 });
+UserSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
 
-module.exports = mongoose.model("User", userSchema);
+UserSchema.methods.matchPassword = async function (entered) {
+  return bcrypt.compare(entered, this.password);
+};
+
+module.exports = mongoose.model("User", UserSchema);

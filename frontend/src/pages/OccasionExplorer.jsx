@@ -3,7 +3,7 @@
 // to OccasionDetailPage — keeps explorer purely presentational.
 
 import { useState, useRef, useEffect, forwardRef } from "react";
-import { useOutfitsByOccasion } from "../hooks/useOutfits";
+import { useOutfitsByOccasion } from "../hooks/useOutfits.js";
 
 // ── Static occasion metadata ─────────────────────────────────────────────────
 const OCCASION_META = [

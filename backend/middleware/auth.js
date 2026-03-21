@@ -1,58 +1,22 @@
-const jwt = require("jsonwebtoken");
+// middleware/auth.js
+const jwt  = require("jsonwebtoken");
+const User = require("../models/User");
 
-const authMiddleware = (req, res, next) => {
+const protect = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  }
+  if (!token) return res.status(401).json({ success: false, message: "Not authorized — no token" });
+
   try {
-    // Get token from header
-    const authHeader = req.header("Authorization");
-    
-    if (!authHeader) {
-      return res.status(401).json({ 
-        success: false,
-        msg: "No authorization token provided" 
-      });
-    }
-
-    // Extract token (format: "Bearer TOKEN")
-    const token = authHeader.startsWith("Bearer ") 
-      ? authHeader.slice(7) 
-      : authHeader;
-
-    if (!token) {
-      return res.status(401).json({ 
-        success: false,
-        msg: "No token found" 
-      });
-    }
-
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Attach user info to request
-    req.user = decoded;
+    req.user = await User.findById(decoded.id).select("-password");
+    if (!req.user) return res.status(401).json({ success: false, message: "User no longer exists" });
     next();
-
-  } catch (error) {
-    console.error("Auth Middleware Error:", error.message);
-    
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ 
-        success: false,
-        msg: "Invalid token" 
-      });
-    }
-    
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ 
-        success: false,
-        msg: "Token expired" 
-      });
-    }
-
-    res.status(500).json({ 
-      success: false,
-      msg: "Server error during authentication" 
-    });
+  } catch {
+    res.status(401).json({ success: false, message: "Token invalid or expired" });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = { protect };

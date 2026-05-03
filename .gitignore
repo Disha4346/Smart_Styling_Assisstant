@@ -1,0 +1,68 @@
+# ── Dependencies ─────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Build outputs ─────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# ── Environment & Secrets (NEVER push these!) ─
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+ai_service/.env
+*.env
+
+# ── Python ────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.eggs/
+
+# ── Logs ──────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── OS generated ──────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDEs & editors ────────────────────────────
+.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Uploads / media ───────────────────────────
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.webp
+
+# ── Misc ──────────────────────────────────────
+.cache/
+.parcel-cache/
+.gemini/
+coverage/
